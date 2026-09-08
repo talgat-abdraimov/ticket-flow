@@ -17,7 +17,14 @@ A provider is four operations plus three facts. Nothing else about a tracker mat
 | `scope` keys | what `fetch` yields and every later call needs |
 
 Tool names below omit the MCP prefix (`mcp__<server>__`), which depends on how the server is
-registered locally. Confirm the actual prefix from the session's tool list during `setup`.
+registered locally — `mcp__clickup__clickup_get_task`, `mcp__linear__get_issue`, and
+`mcp__claude_ai_Linear__get_issue` are all plausible for the same provider.
+
+**How `setup` finds it:** scan the session's available tool names for a suffix match on this
+provider's *fetch* tool (`*clickup_get_task`, `*get_issue`, ...) and take everything before it
+as the prefix. Then apply that prefix to the other three. If no tool matches, that provider's
+MCP is not connected — say so and stop; do not fall back to another provider silently. Getting
+this wrong means `setup`'s prove-the-provider step never runs, so resolve the prefix first.
 
 ---
 
