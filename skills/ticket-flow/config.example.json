@@ -1,0 +1,13 @@
+{
+  "provider": "clickup",
+  "branch_pattern": "[A-Z]+-[0-9]+",
+  "statuses": {
+    "start": "in progress",
+    "review": "code review",
+    "qa": "qa"
+  },
+  "scope": {
+    "workspace_id": "9001234567",
+    "space_id": "90120000000"
+  }
+}
