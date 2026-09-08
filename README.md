@@ -83,10 +83,12 @@ project-level allow will not reach sibling repos.
 Three decisions that are load-bearing rather than incidental:
 
 **Reads happen before every write.** Status sets are scoped per list (ClickUp) or per team
-(Linear), so a name valid on one ticket is invalid on another — verified in one ClickUp
-workspace where active sprint lists used `code review` while older lists in the same space used
-`review`. That one read also buys idempotence, the name → id mapping Linear needs, and a guard
-against moving a ticket *backwards* when a verb is mistyped.
+(Linear), so a name valid on one ticket is invalid on another — one real workspace turned up nine
+distinct statuses across a single space (`backlog`, `to do`, `in progress`, `code review`, `qa`,
+`ready for prod`, `blocked`, `idea`, `done`), varying by list. Trackers do not fuzzy-match:
+writing `in review` to a list whose status is `code review` fails with
+`Status does not exist`. That one read also buys idempotence, the name → id mapping Linear
+needs, and a guard against moving a ticket *backwards* when a verb is mistyped.
 
 **Every write is best-effort.** Failure prints one `⚠` line and continues. A card in the wrong
 column is an annoyance; a deploy that fails because a tracker call errored is a real problem.

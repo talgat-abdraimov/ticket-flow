@@ -42,9 +42,20 @@ Read `~/.claude/ticket-flow.json` before doing anything:
 
 | Invocation | Do this |
 |---|---|
-| bare (`ticket-flow`, "what am I working on") | Run *list my items*, print id + title + current status. No writes. |
+| bare (`ticket-flow`, "what am I working on") | Run *list my items*, print id + title + current status. No writes. **Filter it** — see below. |
 | `start` / `review` / `qa` | Resolve the id, then transition to `statuses.<verb>`. |
 | `setup` | Detect, prove, and write the config. See below. |
+
+**Filtering the listing.** An unfiltered "everything assigned to me" query is close to useless —
+in one real workspace it returned 64 tickets spanning years of closed-out sprints and a goals
+list whose statuses (`idea`) have nothing to do with the dev flow. So:
+
+- Narrow **server-side** by passing the configured status values (`statuses.*`) to the provider's
+  *mine* operation, so you get only work actually in flight.
+- If `scope.list_ids` is set in config, narrow to those lists too.
+- For the **id fallback** (step 1.3) widen it — include the backlog-ish statuses, since the whole
+  point there is to pick up something not yet started.
+- Cap the printed list at ~15, newest first, and say how many you hid.
 
 There is deliberately no `done` verb — closing a ticket belongs to whatever release process the
 team already runs.
@@ -53,7 +64,14 @@ team already runs.
 
 In this order, stopping at the first that works:
 
-1. **Explicit argument** — an id (`ABC-1234`) or a pasted ticket URL. Extract the id from a URL.
+1. **Explicit argument** — an id (`ABC-1234`) or a pasted ticket URL.
+
+   URLs need care: a **ClickUp** URL carries the *internal* id, not the human one
+   (`app.clickup.com/t/869ev1gz3`), while a **Linear** URL carries the human identifier
+   (`linear.app/acme/issue/ENG-123/slug`). So: match `branch_pattern` against the URL first, and
+   if nothing matches, take the **last meaningful path segment** as a native id. Both providers'
+   *fetch* tools accept their own native id, so either form works — do not reject a URL just
+   because no `ABC-123` appears in it.
 2. **Current branch** — `git rev-parse --abbrev-ref HEAD`, then match `config.branch_pattern`:
    ```bash
    git rev-parse --abbrev-ref HEAD 2>/dev/null | grep -oE '[A-Z]+-[0-9]+' | head -1
@@ -112,9 +130,25 @@ their team renames a status.
    a no-op re-set of its current status. Any failure stops setup and names the exact
    `providers.md` key that looks wrong. Do not write a config you could not prove.
 4. **Derive `scope`** from the fetched ticket — workspace/space/team ids come back on it.
-5. **Propose the verb mapping.** Match each verb against the returned ladder: exact, then
-   case-insensitive, then substring. `review` should find `code review`, `In Review`, or
-   `Peer Review`.
+5. **Propose the verb mapping.** Substring matching alone is not enough — `qa` matches
+   exactly and `review` finds `code review`, but `start` matches nothing in a ladder like
+   `backlog / in progress / code review / qa`. So match each verb against these synonyms, in
+   order, case-insensitively, taking the first hit:
+
+   | Verb | Try, in order |
+   |---|---|
+   | `start` | `in progress`, `in-progress`, `started`, `doing`, `wip`, `in development`, `active` |
+   | `review` | `code review`, `in review`, `peer review`, `pr review`, `review` |
+   | `qa` | `qa`, `in qa`, `ready for qa`, `testing`, `in testing`, `verification`, `staging` |
+
+   Then fall back to structure, which is more reliable than names:
+   - If the provider marks state **kinds** (Linear's `type`: `backlog` / `unstarted` /
+     `started` / `completed`), `started` is your `start` candidate.
+   - Otherwise use ordering: `start` is typically the first status after the initial
+     backlog/open one.
+
+   Always print the proposal for confirmation rather than accepting a match silently — a wrong
+   guess here is the one error that persists into every later transition.
 6. **Confirm and write.** Print the detected ladder in order beside the proposed mapping, take
    corrections, then write `~/.claude/ticket-flow.json`.
 

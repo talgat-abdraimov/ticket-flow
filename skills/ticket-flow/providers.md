@@ -29,7 +29,7 @@ registered locally. Confirm the actual prefix from the session's tool list durin
 |---|---|---|
 | fetch | `clickup_get_task` | `task_id` **accepts the human custom id directly** (`ABC-1234`) — no search step. Pass `expand_statuses: true` to get statuses in the same call. |
 | statuses | *(same call)* | `available_statuses[]` — each `{status, orderindex, type}`. `type` is `open` / `custom` / `closed`. |
-| set | `clickup_update_task` | `task_id` + `status`. Takes the **exact status name**, case-sensitive. |
+| set | `clickup_update_task` | `task_id` + `status`. Takes the **exact status name**, case-sensitive. **Verified that `task_id` accepts the human custom id for writes too**, not just reads — returns `{success, task_id, custom_id}`. |
 | mine | `clickup_filter_tasks` | `assignees: [<id>]` + `space_ids: [scope.space_id]`. Leave `include_closed` at its default so closed tickets drop out. |
 
 - `set` accepts: **name**
@@ -40,6 +40,12 @@ registered locally. Confirm the actual prefix from the session's tool list durin
 Notes worth keeping:
 
 - `expand_statuses` folds *statuses* into *fetch*, so ClickUp needs one read, not two.
+- `success: true` comes back even for a no-op re-set of the current status, so it is **not**
+  proof a status changed. Read back when you need to be sure.
+- An unknown status is rejected outright: `{"error":"Failed to update task: Status does not
+  exist"}`. Verified with `in review` — a name a human would reasonably assume, on a list whose
+  actual status is `code review`. There is no fuzzy matching server-side, which is why the
+  pre-write read is mandatory rather than defensive.
 - Statuses are **per list**. Verified in one workspace: active sprint lists ran
   `backlog → in progress → code review → qa → ready for prod → blocked → done`, while older
   lists in the same space used `to do` and `review` instead, and a backlog-style list had a
