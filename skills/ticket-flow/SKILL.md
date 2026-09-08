@@ -67,7 +67,7 @@ In this order, stopping at the first that works:
 1. **Explicit argument** — an id (`ABC-1234`) or a pasted ticket URL.
 
    URLs need care: a **ClickUp** URL carries the *internal* id, not the human one
-   (`app.clickup.com/t/869ev1gz3`), while a **Linear** URL carries the human identifier
+   (`app.clickup.com/t/8a1b2c3d4`), while a **Linear** URL carries the human identifier
    (`linear.app/acme/issue/ENG-123/slug`). So: match `branch_pattern` against the URL first, and
    if nothing matches, take the **last meaningful path segment** as a native id. Both providers'
    *fetch* tools accept their own native id, so either form works — do not reject a URL just
